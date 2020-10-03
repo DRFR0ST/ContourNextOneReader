@@ -28,6 +28,9 @@ public class GlucoseReadingRx {
     public long time;
     public int sampleType;
     public int sampleLocation;
+    public String status;
+    private int minimumMgdl = 70;
+    private int maximumMgdl = 150;
 
     public GlucoseReadingRx(byte[] packet) {
         if (packet.length >= 14) {
@@ -70,6 +73,14 @@ public class GlucoseReadingRx {
                 ptr++;
             }
 
+            if(mgdl > maximumMgdl) {
+                status = "Too high!";
+            } else if(mgdl < minimumMgdl) {
+                status = "Too low!";
+            } else {
+                status = "Alright!";
+            }
+
             final Calendar calendar = Calendar.getInstance();
             calendar.set(year, month, day, hour, minute, second);
             time = calendar.getTimeInMillis();
@@ -79,13 +90,13 @@ public class GlucoseReadingRx {
     public String toString() {
         return "Glucose data: mg/dl: " + mgdl + "  mmol/l: " + mmol + "  kg/l: " + kgl
                 + "  seq:" + sequence + " sampleType: " + sampleType + "  sampleLocation: " + sampleLocation + "  time: " + hour + ":" + minute + ":" + second
-                + "  " + day + "-" + month + "-" + year + " timeoffset: " + offset + " timestamp: " + time;
+                + "  " + day + "-" + month + "-" + year + " timeoffset: " + offset + " timestamp: " + time + "\ncalculated status: " + status + "\ncorrection: " + calculateCorrection();
     }
 
     public String toStringFormatted() {
         return "Glucose data:\nmg/dl: " + mgdl + "\nmmol/l: " + mmol + "\nkg/l: " + kgl
                 + "\nseq:" + sequence + "\nsampleType: " + sampleType + "\nsampleLocation: " + sampleLocation + "\ntime: " + hour + ":" + minute + ":" + second
-                + "  " + day + "-" + month + "-" + year + "\ntimeoffset: " + offset + "\ntimestamp: " + time;
+                + "  " + day + "-" + month + "-" + year + "\ntimeoffset: " + offset + "\ntimestamp: " + time + "\ncalculated status: " + status + "\ncorrection: " + calculateCorrection();
     }
 
     private float getSfloat16(byte b0, byte b1) {
@@ -104,5 +115,13 @@ public class GlucoseReadingRx {
             unsigned = -1 * ((1 << size - 1) - (unsigned & ((1 << size - 1) - 1)));
         }
         return unsigned;
+    }
+
+    private double calculateCorrection() {
+        if(mgdl <= maximumMgdl) {
+            return 0;
+        }
+
+        return Math.floor((mgdl - 100) / 30);
     }
 }
